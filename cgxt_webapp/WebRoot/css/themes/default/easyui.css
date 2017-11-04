@@ -1808,7 +1808,7 @@
   display: none;
 }
 .datagrid-body .datagrid-editable {
-  margin: 0;
+  margin-right:0;
   padding: 0;
 }
 .datagrid-body .datagrid-editable table {

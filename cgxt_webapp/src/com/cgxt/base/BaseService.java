@@ -11,7 +11,45 @@ import org.hibernate.criterion.DetachedCriteria;
  *  
  * @author Monday 
  */  
-public interface BaseService<T extends Serializable> {  
+public interface BaseService<T extends Serializable> { 
+T findByPk(Long sid);
+	
+	List<T> findAll();
+	
+	public List<T> findList(String hql);
+	
+	public List<T> findList(String hql, Map<String, Object> params);
+	
+	public List<T> findTopList(String hql, int topCount);
+	
+	public List<T> findAll(String tableName);
+	
+	public List<T> findList(String hql, Map<String, Object> params, int page, int rows);
+	
+	public List<T> findList(String hql, int page, int rows);
+	
+	public Long getCountByHql(String hql, Map<String, Object> params);
+	
+	public Object getOneByHql(String hql, Object... params);
+	
+	public T getOneBySql(String sql);
+	
+	public T getOneBySql(String sql, Object... params);
+	
+	public T getOneBySql(String sql,Map<String,Object> params);
+	
+	public List<Map<String, Object>> findListBySql(String sql);
+	
+	public List<Map<String, Object>> findListBySql(String sql,Map<String,Object> params);
+	
+	public List<Map<String, Object>> findListBySql(String sql, Object... params);
+	
+	public void updateAll(List<T> entitys);
+	
+	public void deleteAll(List<T> entitys);
+	
+	public void insertAll(List<T> entitys);
+	
 	/**
      * 保存实体对象
      * @param entity 实体对象
@@ -99,4 +137,26 @@ public interface BaseService<T extends Serializable> {
      * @return map对象结果集
      */
     public List<Map<String, Object>> callProcedure(String proceName, final List<Object> params);
+    
+    /**=========================================================================*/
+    void JdbcUpdate(T entity);
+    
+    /**
+     *测试用，同时添加主子表关系（用hibernate完成，一对一，适用于子表关联插入的是主表的主键） 
+     * @param <k>
+     * @param primary  主表对象
+     * @param fmarys   子表对象
+     * @param pkName   子表和主表进行关联的字段（关联的是主表的主键id）
+     * @param isId     关联的是否为主键
+     */
+    public <V, K> void saveOneToOneTable(K primary,V fmary,String pkName,boolean isId);
+    
+    /**
+     * 适用于主子表一起插入，hibernate实现（主表一条数据，子表多条数据,适用于子表关联插入的是主表的主键）
+     * @param primary  主表对象
+     * @param fmarys   子表对象集合 
+     * @param pkName   子表和主表进行关联的字段
+     * @param isId     关联的是否为主键
+     */
+    public <V, k> void saveOneToMoneyTable(k primary,List<V> fmarys,String pkName,boolean isId);
 }  

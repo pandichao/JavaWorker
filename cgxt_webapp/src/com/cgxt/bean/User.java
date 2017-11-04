@@ -15,14 +15,18 @@ public class User implements java.io.Serializable {
 	private String age;
 	private String userName;
 	private String password;
+	private Long roseCode;
 
     public User(){
     }
 	
-    public User(String age, String userName, String password) {
+	public User(Integer id, String age, String userName, String password,
+			Long roseCode) {
+		this.id = id;
 		this.age = age;
 		this.userName = userName;
 		this.password = password;
+		this.roseCode = roseCode;
 	}
 
 	@Id
@@ -62,11 +66,20 @@ public class User implements java.io.Serializable {
 	public void setPassword(String password) {
 		this.password = password;
 	}
+	
+    @Column(name = "roseCode",length = 15)
+	public Long getRoseCode() {
+		return roseCode;
+	}
+
+	public void setRoseCode(Long roseCode) {
+		this.roseCode = roseCode;
+	}
 
 	@Override
 	public String toString() {
 		return "User [id=" + id + ", age=" + age + ", userName=" + userName
-				+ ", password=" + password + "]";
+				+ ", password=" + password + ", roseCode=" + roseCode + "]";
 	}
 
 }

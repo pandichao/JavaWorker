@@ -79,6 +79,22 @@ p {
 			}
 		});
      });
+     
+     //测试点击注册时候修改一下admin的账号密码
+     $('#test').bind('click',function(){
+       $.ajax({
+        url : '/cgxt_webapp/user/updateUser',
+        async : true,
+        type : 'POST',
+        dataType : 'JSON',
+        success : function(data){
+          $.messager.alert('失败',data['msg'],'error');
+        },
+        error : function(err){
+          $.messager.alert('失败','出现异常了','error');
+        }
+       });
+     });
    });
 </script>
 </head>
@@ -121,7 +137,7 @@ p {
 					<a id="login" href="#" rel="external nofollow" rel="external nofollow"
 						class="easyui-linkbutton" style="width:45%;height:32px">登录</a>
 				    <a
-						href="#" rel="external nofollow" rel="external nofollow"
+						id="test" href="#" rel="external nofollow" rel="external nofollow"
 						class="easyui-linkbutton" style="width:45%;height:32px">注册</a>
 				</div>
 			</div>

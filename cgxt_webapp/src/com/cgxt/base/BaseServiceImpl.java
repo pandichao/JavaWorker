@@ -4,6 +4,7 @@ import java.io.Serializable;
 import java.util.List;
 import java.util.Map;
 import org.hibernate.criterion.DetachedCriteria;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Transactional;
 
 /** 
@@ -13,7 +14,8 @@ import org.springframework.transaction.annotation.Transactional;
  */  
 @Transactional  
 public class BaseServiceImpl<T extends Serializable> implements BaseService<T> {
-    private BaseDao<T> basedao;
+    @Autowired
+	private BaseDao<T> basedao;
     
 	@Override
 	public void save(T entity) {
@@ -80,6 +82,118 @@ public class BaseServiceImpl<T extends Serializable> implements BaseService<T> {
 	public List<Map<String, Object>> callProcedure(String proceName,
 			List<Object> params) {
 		return basedao.callProcedure(proceName, params);
+	}
+
+	@Override
+	public void JdbcUpdate(T entity) {
+		basedao.JdbcUpdate(entity);
+	}
+
+	@Override
+	public T findByPk(Long sid) {
+		return basedao.findByPk(sid);
+	}
+
+	@Override
+	public List<T> findAll() {
+		return basedao.findAll();
+	}
+
+	@Override
+	public List<T> findList(String hql) {
+		return basedao.findList(hql);
+	}
+
+	@Override
+	public List<T> findList(String hql, Map<String, Object> params) {
+		return basedao.findList(hql, params);
+	}
+
+	@Override
+	public List<T> findTopList(String hql, int topCount) {
+		return basedao.findTopList(hql,topCount);
+	}
+
+	@Override
+	public List<T> findAll(String tableName) {
+		return basedao.findAll();
+	}
+
+	@Override
+	public List<T> findList(String hql, Map<String, Object> params, int page,
+			int rows) {
+		return basedao.findList(hql, params, page, rows);
+	}
+
+	@Override
+	public List<T> findList(String hql, int page, int rows) {
+		return basedao.findList(hql, page, rows);
+	}
+
+	@Override
+	public Long getCountByHql(String hql, Map<String, Object> params) {
+		return basedao.getCountByHql(hql, params);
+	}
+
+	@Override
+	public Object getOneByHql(String hql, Object... params) {
+		return basedao.getOneByHql(hql, params);
+	}
+
+	@Override
+	public T getOneBySql(String sql) {
+		return basedao.getOneBySql(sql);
+	}
+
+	@Override
+	public T getOneBySql(String sql, Object... params) {
+		return basedao.getOneBySql(sql, params);
+	}
+
+	@Override
+	public T getOneBySql(String sql, Map<String, Object> params) {
+		return basedao.getOneBySql(sql, params);
+	}
+
+	@Override
+	public List<Map<String, Object>> findListBySql(String sql) {
+		return basedao.findListBySql(sql);
+	}
+
+	@Override
+	public List<Map<String, Object>> findListBySql(String sql,
+			Map<String, Object> params) {
+		return basedao.findListBySql(sql,params);
+	}
+
+	@Override
+	public List<Map<String, Object>> findListBySql(String sql, Object... params) {
+		return basedao.findListBySql(sql, params);
+	}
+
+	@Override
+	public void updateAll(List<T> entitys) {
+		basedao.updateAll(entitys);
+	}
+
+	@Override
+	public void deleteAll(List<T> entitys) {
+		basedao.deleteAll(entitys);
+	}
+
+	@Override
+	public void insertAll(List<T> entitys) {
+       basedao.insertAll(entitys);		
+	}
+
+	@Override
+	public <V, K> void saveOneToOneTable(K primary,V fmary,String pkName,boolean isId) {
+		basedao.saveOneToOneTable(primary, fmary, pkName,isId);
+	}
+
+	@Override
+	public <V, k> void saveOneToMoneyTable(k primary,List<V> fmarys,String pkName,boolean isId) {
+		basedao.saveOneToMoneyTable(primary, fmarys, pkName,isId);
 	}  
       
 }  
