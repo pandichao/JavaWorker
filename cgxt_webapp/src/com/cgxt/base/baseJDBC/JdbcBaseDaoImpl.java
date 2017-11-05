@@ -190,83 +190,8 @@ public class JdbcBaseDaoImpl<T> implements JdbcBaseDao<T>{
 	public JdbcTemplate getJdbcTemplate() {
 		return jdbcTemplate;
 	}
-
-
-	/**me
-	 * @param entity
-	 * @param IdName
-	 */
-	public <E> void save(E entity,String IdName) {
-		Map<String, List> valueMap = FieldUtils.getNotnullFieldsAndValueMap(entity);
-		List<String> fieldsNames = valueMap.get("fields");
-		Object[] args = valueMap.get("values").toArray();
-		String sql = this.makeSql(SQL_INSERT,IdName,entity.getClass(),fieldsNames,null,null);
-		
-		//Object[] args = this.setArgs(entity, SQL_INSERT);
-		//int[] argTypes = this.setArgTypes(entity, SQL_INSERT);
-		int[] argTypes = this.setArgTypes(entity.getClass(), (String[])fieldsNames.toArray());
-		jdbcTemplate.update(sql.toString(), args, argTypes);
-	}
 	
-	/**me
-	 * 重新定义的组装sql的方法
-	 * @param sqlFlag  取值 SQL_INSERT:需要进行原生新增sql语句拼接，只要前三个参数，最后一个参数可以不传 
-	 *                     SQL_UPDATE ： 需要进行部分修改和delete操作的时候可以使用这个方法，bean传之前的修改之前的对象，setMap参数可以只传需要修改的字段以及修改的值
-	 *                     SQL_DELETE ： 如果需要删除，直接传之前的实体就可以   
-	 * @param IdName   主键的字段名
-	 * @param bean     需要操作的实体
-	 * @param setMap   执行
-	 * @param whereMap
-	 * @return
-	 */
-	public String makeSql(String sqlFlag,String IdName,Class<?> clazz,List<String> fieldsNames,List<String> setList,List<String> whereList){
-		StringBuilder builder = new StringBuilder();
-			//开始进行拼接
-			if(sqlFlag.equals(SQL_INSERT)){
-				builder.append(" INSERT INTO " + entityClass.getSimpleName()+" (");
-				builder.append(IdName+",");
-				//获取工具类封装截取的数据
-				for (String field : fieldsNames) {
-					builder.append(field+",");
-				}
-				builder = builder.deleteCharAt(builder.length() - 1);
-				String select_id = "(select MAX(ab."+IdName+") from "+clazz.getSimpleName()+" as ab)";
-				builder.append(") VALUES (");
-				//自动设置当前表最大id+1
-				builder.append(select_id);
-				for (int i = 0; i < fieldsNames.size(); i++) {
-					builder.append("?,");
-				}
-				builder = builder.deleteCharAt(builder.length() - 1);
-				builder.append(");");
-			}else if(sqlFlag.equals(SQL_UPDATE)){
-				builder.append("  UPDATE " + entityClass.getSimpleName() + " SET ");
-				for (String setName : setList) {
-					builder.append(setName+" = ?,");
-				}
-				builder = builder.deleteCharAt(builder.length() - 1);
-				builder.append(" WHERE ");
-				for (int i = 0;i < whereList.size();i ++) {
-					if(i < whereList.size() - 1){
-						builder.append(whereList.get(i) +" =? and ");
-					}else{
-						builder.append(whereList.get(i)+"=?");
-					}
-				}
-				builder.append(";");
-			}else if(sqlFlag.equals(SQL_DELETE)){
-				builder.append(" DELETE FROM " + entityClass.getSimpleName() + " WHERE ");
-				for (int i = 0;i < whereList.size();i ++) {
-					if(i < whereList.size() - 1){
-						builder.append(whereList.get(i)+"=? and ");
-					}else{
-						builder.append(whereList.get(i)+"=?");
-					}
-				}
-				builder.append(";");
-			}
-		return builder.toString();
-	}
+	
 	/**
 	 * 组装SQl
 	 * 
@@ -361,41 +286,7 @@ public class JdbcBaseDaoImpl<T> implements JdbcBaseDao<T>{
 		return null;
 	}
 
-	/**
-	 * 重写的动态获取在数据库中应该为什么类型的方法
-	 * @param clazz
-	 * @param sqlFlag
-	 * @param fieldNames
-	 * @return
-	 */
-	//public int[] setArgTypes(Class clazz, String sqlFlag,String[] fieldNames) {
-	public int[] setArgTypes(Class clazz,String[] fieldNames) {
-		int[] argTypes = new int[fieldNames.length];
-		Field[] fields = clazz.getDeclaredFields();
-		for (int i = 0;i < fieldNames.length;i ++) {
-			for (Field field : fields) {
-				if(field.getName().equalsIgnoreCase(fieldNames[i].trim())){
-					//如果名字一样，获取类型
-					String fieldType = field.getType().getSimpleName();  
-					if ("String".equals(fieldType)) {
-						argTypes[i] = Types.VARCHAR;
-					} else if ("Date".equals(fieldType)) { 
-						argTypes[i] = Types.DATE;
-					} else if ("Integer".equals(fieldType)  
-							|| "int".equals(fieldType) || "Short".equals(fieldType)) { 
-						argTypes[i] = Types.INTEGER;
-					} else if ("Long".equalsIgnoreCase(fieldType)) {
-						argTypes[i] = Types.BIGINT;
-					} else if ("Double".equalsIgnoreCase(fieldType) || "BigDecimal".equalsIgnoreCase(fieldType)) {
-						argTypes[i] = Types.DECIMAL;
-					} else if ("Boolean".equalsIgnoreCase(fieldType)) {
-						argTypes[i] = Types.BIT;
-					}
-				}
-			}
-		}
-		return argTypes;
-	}
+	
 
 	/**
 	 * 设置参数类型（写的不全，只是一些常用的）

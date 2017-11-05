@@ -7,6 +7,8 @@ import org.hibernate.criterion.DetachedCriteria;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.cgxt.base.BaseDaoImpl.Sqltype;
+
 /** 
  * BaseServiceImpl 定义Service的通用操作的实现 
  *  
@@ -194,6 +196,11 @@ public class BaseServiceImpl<T extends Serializable> implements BaseService<T> {
 	@Override
 	public <V, k> void saveOneToMoneyTable(k primary,List<V> fmarys,String pkName,boolean isId) {
 		basedao.saveOneToMoneyTable(primary, fmarys, pkName,isId);
+	}
+
+	@Override
+	public <E> int JDBCsave(E entity,String IdName,Sqltype type) {
+		return basedao.JDBCsave(entity, IdName,type);
 	}  
       
 }  

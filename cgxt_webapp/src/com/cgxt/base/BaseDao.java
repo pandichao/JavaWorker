@@ -6,6 +6,8 @@ import java.util.Map;
 
 import org.hibernate.criterion.DetachedCriteria;
 
+import com.cgxt.base.BaseDaoImpl.Sqltype;
+
 
 
 /**
@@ -161,6 +163,11 @@ public interface BaseDao<T extends Serializable> {
      */
     public <V, k> void saveOneToMoneyTable(k primary,List<V> fmarys,String pkName,boolean isId);
     
-    
+    /**
+     * SpringJDBCµÄinsert·½·¨
+     * @param entity
+     * @param IdName
+     */
+    public <E> int JDBCsave(E entity,String IdName,Sqltype type);
     
 }

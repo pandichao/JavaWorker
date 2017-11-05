@@ -6,6 +6,8 @@ import java.util.Map;
 
 import org.hibernate.criterion.DetachedCriteria;
 
+import com.cgxt.base.BaseDaoImpl.Sqltype;
+
 /** 
  * BaseService 定义Service的通用操作 
  *  
@@ -159,4 +161,11 @@ T findByPk(Long sid);
      * @param isId     关联的是否为主键
      */
     public <V, k> void saveOneToMoneyTable(k primary,List<V> fmarys,String pkName,boolean isId);
+    
+    /**
+     * 使用SpringJDBC进行save
+     * @param entity
+     * @param IdName
+     */
+    public <E> int JDBCsave(E entity,String IdName,Sqltype type);
 }  

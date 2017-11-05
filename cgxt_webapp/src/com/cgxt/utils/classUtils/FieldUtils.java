@@ -34,10 +34,11 @@ public class FieldUtils {
 
 	/**
 	 * 指定属性名，设置对应的值(必须保证当前这个类中没有重名的属性)
+	 * @param <T>
 	 * @param fieldName
 	 * @param o
 	 */
-	public static Object setFieldValueByName(String fieldName,String value,Object o){
+	public static <T> T setFieldValueByName(String fieldName,String value,T o){
 		try {
             //属性第一个字母转成大写 set。。。。。。。
 			String firstLetter = fieldName.substring(0, 1).toUpperCase();

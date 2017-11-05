@@ -9,6 +9,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestMapping;
 import com.cgxt.base.BaseController;
+import com.cgxt.base.BaseDaoImpl.Sqltype;
 import com.cgxt.bean.Rose;
 import com.cgxt.bean.User;
 import com.cgxt.service.UserService;
@@ -60,12 +61,18 @@ public class UserController extends BaseController{
 		rose.setRoseName("超级管理员权限");
 		//子表user
 		User user = new User();
+		//user.setId(1);
 		user.setAge("20");
 		user.setUserName("admin");
 		user.setPassword("123456");
+		//user.setRoseCode((long)1);
 		try {
 			//开始主子表一起插入
-			userService.saveOneToOneTable(rose,user,"roseCode",true);
+			//userService.saveOneToOneTable(rose,user,"roseCode",true);
+			//改为jdbc插入
+			userService.JDBCsave(rose,"id",Sqltype.MYSQL);
+			userService.JDBCsave(user,"id",Sqltype.MYSQL);
+			//在插入子表
 			map.put("error",false);
 			map.put("msg","主子表一起插入成功，恭喜哈");
 		} catch (Exception e) {
