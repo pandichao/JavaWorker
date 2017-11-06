@@ -62,16 +62,22 @@ public class UserController extends BaseController{
 		//子表user
 		User user = new User();
 		//user.setId(1);
-		user.setAge("20");
-		user.setUserName("admin");
-		user.setPassword("123456");
+		user.setAge("110");
+		user.setUserName("admin123");
+		user.setPassword("123456789");
 		//user.setRoseCode((long)1);
+		//map
+		/*Map<String,Object> whereMap = new HashMap<String, Object>();
+		whereMap.put("age","20");
+		whereMap.put("userName","admin");*/
 		try {
 			//开始主子表一起插入
 			//userService.saveOneToOneTable(rose,user,"roseCode",true);
 			//改为jdbc插入
-			userService.JDBCsave(rose,"id",Sqltype.MYSQL);
-			userService.JDBCsave(user,"id",Sqltype.MYSQL);
+			//userService.JDBCsave(rose,"id",Sqltype.MYSQL);
+			//userService.JDBCsave(user,"id",Sqltype.MYSQL);
+			//userService.JdbcUpdate(user,whereMap);
+			userService.JdbcDelete(user);
 			//在插入子表
 			map.put("error",false);
 			map.put("msg","主子表一起插入成功，恭喜哈");

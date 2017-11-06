@@ -170,4 +170,19 @@ public interface BaseDao<T extends Serializable> {
      */
     public <E> int JDBCsave(E entity,String IdName,Sqltype type);
     
+    /**
+	 * SpringJdbc的修改的方法
+	 * @param entity
+	 * @param IdName
+	 * @param type
+	 */
+	public <E> int JdbcUpdate(E entity,Map<String,Object> whereMap);
+	
+	/**
+	 * jdbc的删除方法
+	 * @param <E>
+	 * @return
+	 */
+	public <E> int JdbcDelete(E	entity);
+	
 }

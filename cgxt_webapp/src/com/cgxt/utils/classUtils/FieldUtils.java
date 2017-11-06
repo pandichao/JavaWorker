@@ -112,10 +112,10 @@ public class FieldUtils {
                 } else {  
                     if (null != fieldVal) {  
                         result = String.valueOf(fieldVal);  
+                        fieldList.add(field.getName());
+                        values.add(result);
                     }  
                 }
-                fieldList.add(field.getName());
-                values.add(result);
             } catch (Exception e) {  
                 continue;  
             }  

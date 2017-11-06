@@ -15,6 +15,8 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
+
 import javax.annotation.Resource;
 import org.hibernate.Criteria;
 import org.hibernate.Query;
@@ -730,9 +732,7 @@ public class BaseDaoImpl<T extends Serializable> implements BaseDao<T>{
             	break;
 			}
 			buffer.append(" from "+entity.getClass().getSimpleName()+" as ab;");
-			System.out.println("sqlId:"+buffer.toString());
 			Long Id = jdbcTemplate.queryForObject(buffer.toString(),Long.class);
-			System.out.println("Id:"+Id);
 			entity = FieldUtils.setFieldValueByName(IdName, Id.toString(),entity);
 		}
 		Map<String, List> valueMap = FieldUtils.getNotnullFieldsAndValueMap(entity);
@@ -745,7 +745,56 @@ public class BaseDaoImpl<T extends Serializable> implements BaseDao<T>{
 			return jdbcTemplate.update(sql.toString(), values.toArray(), argTypes);
 		}
 	}
-
+	
+	/**
+	 * SpringJdbc的修改的方法
+	 * @param entity
+	 * @param IdName
+	 * @param type
+	 */
+	public <E> int JdbcUpdate(E entity,Map<String,Object> whereMap){
+		//便利map，组成where条件的list集合以及value的条件
+		List<String> where = new ArrayList<String>();
+		List<Object> whereVal = new ArrayList<Object>();
+		for (Entry<String,Object> entry : whereMap.entrySet()) {
+			where.add(entry.getKey());
+			whereVal.add(entry.getValue());
+		}
+		//获取重新修改的对象的属性
+		Map<String, List> fieldsAndValueMap = FieldUtils.getNotnullFieldsAndValueMap(entity);
+		List<String> setList = (List<String>)fieldsAndValueMap.get("fields");
+		List<Object> setValues = fieldsAndValueMap.get("values");
+		String sql = this.makeSql(SQL_UPDATE, null,entity.getClass(),null,setList,where);
+		//所有？的字段组成集合
+		setList.addAll(where);
+		//所有对应的值也存放一起
+		setValues.addAll(whereVal);
+		String[] toArray = this.listToArray(setList,String.class);
+		int[] argTypes = this.setArgTypes(entity.getClass(),toArray);
+		synchronized (jdbcTemplate) {
+			return jdbcTemplate.update(sql, setValues.toArray(), argTypes);
+		}
+	}
+	
+	/**
+	 * jdbc的删除方法
+	 * @param <E>
+	 * @return
+	 */
+	public <E> int JdbcDelete(E	entity){
+		Map<String, List> fieldsAndValueMap = FieldUtils.getNotnullFieldsAndValueMap(entity);
+		//获取所有的field，作为whereList
+		List<String> fieldNames = (List<String>)fieldsAndValueMap.get("fields");
+		List<Object> values = fieldsAndValueMap.get("values");
+		String sql = this.makeSql(SQL_DELETE, null,entity.getClass(),null, null, fieldNames);
+	    //获取所有的类型
+		System.out.println("参数数量为："+fieldNames.size());
+		String[] toArray = this.listToArray(fieldNames,String.class);
+		int[] types = this.setArgTypes(entity.getClass(),toArray);
+		synchronized (jdbcTemplate) {
+		  return jdbcTemplate.update(sql,values,types);	
+		}
+	}
 	/**me
 	 * 重新定义的组装sql的方法
 	 * @param sqlFlag  取值 SQL_INSERT:需要进行原生新增sql语句拼接，只要前三个参数，最后一个参数可以不传 
@@ -789,7 +838,7 @@ public class BaseDaoImpl<T extends Serializable> implements BaseDao<T>{
 			}
 			builder.append(";");
 		}else if(sqlFlag.equals(SQL_DELETE)){
-			builder.append(" DELETE FROM " + entityClass.getSimpleName() + " WHERE ");
+			builder.append(" DELETE FROM " + clazz.getSimpleName() + " WHERE ");
 			for (int i = 0;i < whereList.size();i ++) {
 				if(i < whereList.size() - 1){
 					builder.append(whereList.get(i)+"=? and ");
@@ -797,7 +846,7 @@ public class BaseDaoImpl<T extends Serializable> implements BaseDao<T>{
 					builder.append(whereList.get(i)+"=?");
 				}
 			}
-			builder.append(";");
+			//builder.append(" ;");
 		}
 		return builder.toString();
 	}

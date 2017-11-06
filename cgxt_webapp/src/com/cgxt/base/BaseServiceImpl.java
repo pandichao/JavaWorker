@@ -201,6 +201,16 @@ public class BaseServiceImpl<T extends Serializable> implements BaseService<T> {
 	@Override
 	public <E> int JDBCsave(E entity,String IdName,Sqltype type) {
 		return basedao.JDBCsave(entity, IdName,type);
+	}
+
+	@Override
+	public <E> void JdbcUpdate(E entity,Map<String, Object> whereMap) {
+		basedao.JdbcUpdate(entity,whereMap);
+	}
+
+	@Override
+	public <E> void JdbcDelete(E entity) {
+		basedao.JdbcDelete(entity);
 	}  
       
 }  
