@@ -82,6 +82,7 @@ public class UserController extends BaseController{
 				builder.append(";");
 			}
 		}
+		System.out.println(builder.toString());
 		//×Ó±íuser
 		//map
 		/*Map<String,Object> whereMap = new HashMap<String, Object>();
