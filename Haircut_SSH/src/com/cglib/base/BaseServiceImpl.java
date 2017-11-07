@@ -5,25 +5,28 @@ import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import org.hibernate.criterion.DetachedCriteria;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.cglib.utils.AbstractEntity;
 
 /** 
- * BaseServiceImpl ¶¨ÒåServiceµÄÍ¨ÓÃ²Ù×÷µÄÊµÏÖ 
+ * BaseServiceImpl ï¿½ï¿½ï¿½ï¿½Serviceï¿½ï¿½Í¨ï¿½Ã²ï¿½ï¿½ï¿½ï¿½ï¿½Êµï¿½ï¿½ 
  *  
  * @author Monday 
  */  
 @Transactional  
 public class BaseServiceImpl<T extends AbstractEntity> implements BaseService<T> {
+	@Autowired
     private BaseDao<T> basedao;
     
-    //ÐÂÔö
+    //ï¿½ï¿½ï¿½ï¿½
 	@Override
 	public void save(T entity) {
 		this.beforeInsertEntity(entity);
 		basedao.save(entity);
 	}
+	
 	public void beforeInsertEntity(T entity) {
         entity.setCreate_date(new Date());
 		if (entity.getCversion() == null) {
@@ -34,7 +37,7 @@ public class BaseServiceImpl<T extends AbstractEntity> implements BaseService<T>
 		}
 	}
 
-	//ÐÞ¸Ä
+	//ï¿½Þ¸ï¿½
 	@Override
 	public void update(T entity) {
 		this.beforeUpdateEntity(entity);
@@ -47,13 +50,13 @@ public class BaseServiceImpl<T extends AbstractEntity> implements BaseService<T>
 		}
 	}
 
-	//Âß¼­É¾³ý
+	//ï¿½ß¼ï¿½É¾ï¿½ï¿½
 	@Override
 	public void delete(T entity) {
 		basedao.delete(entity);
 	}
 	
-	//¸ù¾ÝÖ÷¼ü²éÑ¯
+	//ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ñ¯
 	public T findByPk(Long sid) {
 		return basedao.findByPk(sid);
 	}

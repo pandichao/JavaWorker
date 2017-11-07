@@ -28,7 +28,7 @@
 						timeout:3000,
 						showType:'slide'
 					});
-	    			window.location.href="/Haircut_SSH/User/mgt_index";
+	    			window.location.href="/Haircut_SSH/User/mgt_index?name="+userName;
 	    		}else{
 	    			$.messager.show({
 						title:'提示消息',

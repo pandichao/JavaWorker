@@ -25,7 +25,7 @@ public class UserDaoImpl extends BaseDaoImpl<User> implements UserDao {
 		buffer.append("select u.id,u.age,u.userName,u.`password` from user as u");
 		return this.findBySql(buffer.toString());
 	}
-	//��¼��֤
+	//登录
 	public List<User> checkLogin(String userName,String pwd){
 		String sql = "select a.id,a.userName from user a " +
 				" where a.userName='"+userName+"' and a.password='"+pwd+"'";
@@ -55,8 +55,7 @@ public class UserDaoImpl extends BaseDaoImpl<User> implements UserDao {
 		if(parms.get("passWord")!=null){
 			pwd=parms.get("passWord").toString();
 		}
-		String sql = "select a.id,a.userName from user a " +
-				" where a.userName='"+userName+"' and a.password='"+pwd+"'";
+		String sql = "insert into user(id,userName,password)";
 		return true;
 	}
 }

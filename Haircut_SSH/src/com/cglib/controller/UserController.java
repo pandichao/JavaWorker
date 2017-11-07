@@ -28,12 +28,21 @@ public class UserController extends BaseController{
     }
     
     @RequestMapping("/mgt_index")
-    public String mgt_index(){
+    public String mgt_index(String name,HttpServletRequest request) throws Exception{
+    	request.setCharacterEncoding("UTF-8");
+    	String a = new String(name.getBytes("iso-8859-1"),"utf-8"); 
+    	//System.out.println("登录名："+a);
+    	request.setAttribute("userName", a);
     	return "/Test/mgt_index";
     }
     @RequestMapping("/zhuce")
     public String zhuce(){
     	return "/Test/zhuce";
+    }
+    //返回登录
+    @RequestMapping("/cancle")
+    public String cancle(){
+    	return "../../index";
     }
     
     @RequestMapping("/getUserAll")

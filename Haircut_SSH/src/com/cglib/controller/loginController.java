@@ -36,7 +36,7 @@ public class loginController extends BaseController{
 		if(list.size()>0){
 			super.writeJson(response,1);
 		}else{
-			super.writeJson(response,"��¼ʧ�ܣ�����������д��");
+			super.writeJson(response,"登录失败");
 		}
 	}
 	@RequestMapping("/zhuce")
@@ -49,19 +49,21 @@ public class loginController extends BaseController{
 			Map<String,Object> parms=new HashMap<String,Object>();
 			parms.put("userName", userName);
 			parms.put("passWord", passWord);
-			/*User user=new User();
+			User user=new User();
 			user.setUserName(userName);
 			user.setPassword(pwd);
-			this.userService.save(user);*/
-			boolean a= this.userService.insert(parms);
-			if(a){
+			this.userService.save(user);
+			super.writeJson(response,1);
+			//boolean a= this.userService.insert(parms);
+			/*if(a){
 				super.writeJson(response,1);
 			}else{
 				super.writeJson(response,"注册失败");
-			}
+			}*/
 		}catch(Exception e){
 			super.writeJson(response,"注册失败");
 			e.getMessage();
+			e.printStackTrace();
 		}
 	}
 }
