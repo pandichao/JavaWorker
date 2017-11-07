@@ -183,4 +183,6 @@ T findByPk(Long sid);
 	 * @return
 	 */
 	public <E> void JdbcDelete(E entity);
+	
+	public <E> void batchJdbcSave(List<E> entitys,String IdName,Sqltype type);
 }  

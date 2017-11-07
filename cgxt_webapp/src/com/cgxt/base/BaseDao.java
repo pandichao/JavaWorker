@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.hibernate.criterion.DetachedCriteria;
+import org.springframework.dao.DataAccessException;
 
 import com.cgxt.base.BaseDaoImpl.Sqltype;
 
@@ -184,5 +185,9 @@ public interface BaseDao<T extends Serializable> {
 	 * @return
 	 */
 	public <E> int JdbcDelete(E	entity);
+	
+	public <E> void batchJdbcSave(List<E> entitys,String IdName,Sqltype type);
+	
+	public <E> void batchInsertJDBC3(List<E> entitys,String IdName,Sqltype type,boolean defultId) throws DataAccessException;
 	
 }

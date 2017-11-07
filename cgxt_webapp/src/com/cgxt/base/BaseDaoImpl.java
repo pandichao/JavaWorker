@@ -28,11 +28,13 @@ import org.hibernate.criterion.Projections;
 import org.hibernate.jdbc.Work;
 import org.hibernate.transform.Transformers;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 
 import com.cgxt.utils.ComUtil;
 import com.cgxt.utils.classUtils.FieldUtils;
+import com.mysql.jdbc.Buffer;
 
 /*@Repository("baseDao")*/
 public class BaseDaoImpl<T extends Serializable> implements BaseDao<T>{          
@@ -706,7 +708,7 @@ public class BaseDaoImpl<T extends Serializable> implements BaseDao<T>{
 		ORACLE,
 		SQLSERVER
 	}
-	
+
 	/**me
 	 * @param entity
 	 * @param IdName
@@ -718,26 +720,13 @@ public class BaseDaoImpl<T extends Serializable> implements BaseDao<T>{
 		Object IdValue = FieldUtils.getFieldValueByName(IdName,entity);
 		if(ComUtil.isEmpty(IdValue)){
 			//如果为空，说明当前没有设置主键，那么我们默认自动设置
-			StringBuffer buffer = new StringBuffer();
-			buffer.append("select ");
-			switch (type) {
-			case ORACLE:
-				buffer.append("nvl(MAX(ab."+IdName+"),0))+1");
-				break;
-            case SQLSERVER:
-            	buffer.append("isnull(MAX(ab."+IdName+"),0)+1");
-            	break;
-            case MYSQL:
-            	buffer.append("ifnull(MAX(ab."+IdName+"),0)+1");
-            	break;
-			}
-			buffer.append(" from "+entity.getClass().getSimpleName()+" as ab;");
+			StringBuffer buffer = getIdValue(entity, IdName, type);
 			Long Id = jdbcTemplate.queryForObject(buffer.toString(),Long.class);
 			entity = FieldUtils.setFieldValueByName(IdName, Id.toString(),entity);
 		}
 		Map<String, List> valueMap = FieldUtils.getNotnullFieldsAndValueMap(entity);
 		List<String> fieldsNames = valueMap.get("fields");
-	    List<Object> values = valueMap.get("values");
+		List<Object> values = valueMap.get("values");
 		String sql = this.makeSql(SQL_INSERT,IdName,entity.getClass(),fieldsNames,null,null);
 		String[] toArray = this.listToArray(fieldsNames,String.class);
 		int[] argTypes = this.setArgTypes(entity.getClass(),toArray);
@@ -745,7 +734,32 @@ public class BaseDaoImpl<T extends Serializable> implements BaseDao<T>{
 			return jdbcTemplate.update(sql.toString(), values.toArray(), argTypes);
 		}
 	}
-	
+
+	/**
+	 * 设置主键的默认查询语句
+	 * @param entity
+	 * @param IdName
+	 * @param type
+	 * @return
+	 */
+	private <E> StringBuffer getIdValue(E entity, String IdName, Sqltype type) {
+		StringBuffer buffer = new StringBuffer();
+		buffer.append("select ");
+		switch (type) {
+		case ORACLE:
+			buffer.append("nvl(MAX(ab."+IdName+"),0))+1");
+			break;
+		case SQLSERVER:
+			buffer.append("isnull(MAX(ab."+IdName+"),0)+1");
+			break;
+		case MYSQL:
+			buffer.append("ifnull(MAX(ab."+IdName+"),0)+1");
+			break;
+		}
+		buffer.append(" from "+entity.getClass().getSimpleName()+" as ab");
+		return buffer;
+	}
+
 	/**
 	 * SpringJdbc的修改的方法
 	 * @param entity
@@ -775,7 +789,7 @@ public class BaseDaoImpl<T extends Serializable> implements BaseDao<T>{
 			return jdbcTemplate.update(sql, setValues.toArray(), argTypes);
 		}
 	}
-	
+
 	/**
 	 * jdbc的删除方法
 	 * @param <E>
@@ -787,12 +801,12 @@ public class BaseDaoImpl<T extends Serializable> implements BaseDao<T>{
 		List<String> fieldNames = (List<String>)fieldsAndValueMap.get("fields");
 		List<Object> values = fieldsAndValueMap.get("values");
 		String sql = this.makeSql(SQL_DELETE, null,entity.getClass(),null, null, fieldNames);
-	    //获取所有的类型
+		//获取所有的类型
 		System.out.println("参数数量为："+fieldNames.size());
 		String[] toArray = this.listToArray(fieldNames,String.class);
 		int[] types = this.setArgTypes(entity.getClass(),toArray);
 		synchronized (jdbcTemplate) {
-		  return jdbcTemplate.update(sql,values,types);	
+			return jdbcTemplate.update(sql,values,types);	
 		}
 	}
 	/**me
@@ -903,6 +917,111 @@ public class BaseDaoImpl<T extends Serializable> implements BaseDao<T>{
 			dest[i] = src.get(i);
 		}
 		return (T[]) dest;
+	}
+
+	@Override
+	public <E> void batchJdbcSave(List<E> entitys, String IdName, Sqltype type) {
+		StringBuilder sqls = new StringBuilder();
+		for (E entity : entitys) {
+			Object IdValue = FieldUtils.getFieldValueByName(IdName,entity);
+			//获取所有的属性字段以及value字段
+			Map<String, List> fieldsValues = FieldUtils.getNotnullFieldsAndValueMap(entity);
+			List<String> fieldNames = (List<String>)fieldsValues.get("fields");
+			List<Object> values = fieldsValues.get("values");
+			String batch_sql = "";
+			if(ComUtil.isEmpty(IdValue)){
+				//如果为空，说明当前没有设置主键，那么我们默认自动设置
+				batch_sql = "("+getIdValue(entity, IdName, type)+")";
+				//fieldNames.add(0,IdName.trim());
+			}
+			//进行动态拼接sql
+			StringBuilder builder = new StringBuilder();
+			builder.append("INSERT INTO "+entity.getClass().getSimpleName()+"(");
+			builder.append(IdName.trim()+",");
+			for (String field : fieldNames) {
+				builder.append(field+",");
+			}
+			builder.deleteCharAt(builder.length() - 1);
+			builder.append(") VALUES(");
+			builder.append(batch_sql).append(",");
+			//获取所有类型
+			int[] types = this.setArgTypes(entity.getClass(),listToArray(fieldNames,String.class));		
+			for(int i = 0,count = values.size();i < count;i ++) {
+				if(types[i] == Types.BIGINT){
+					builder.append(Long.parseLong(values.get(i).toString())+",");
+				}else if(types[i] == Types.BIT){
+					builder.append(Boolean.parseBoolean(values.get(i).toString())+",");
+				}else if(types[i] == Types.DATE){
+					builder.append(values.get(i).toString()+",");
+				}else if(types[i] == Types.VARCHAR){
+					builder.append("'"+values.get(i).toString()+"',");
+				}else if(types[i] == Types.DECIMAL){
+					builder.append(Double.parseDouble(values.get(i).toString())+",");
+				}else if(types[i] == Types.INTEGER){
+					builder.append(Integer.parseInt(values.get(i).toString())+",");
+				}
+			}
+			builder.deleteCharAt(builder.length() - 1);
+			builder.append(");");
+			synchronized (jdbcTemplate) {
+				jdbcTemplate.batchUpdate(builder.toString());	
+			}
+		}
+	}
+
+	@Override
+	public <E> void batchInsertJDBC3(List<E> entitys, String IdName,
+			Sqltype type,boolean defultId) throws DataAccessException {
+		String batch_sql = "";
+		if(defultId){
+			//如果为空，说明当前没有设置主键，那么我们默认自动设置
+			batch_sql = "("+getIdValue(entitys.get(0), IdName, type)+")";
+		}
+		//获取所有属性和value
+		Map<String, Object> field = FieldUtils.getFieldValueMap(entitys.get(0));
+		List<String> fieldNames = new ArrayList<String>();
+		List<Object> values = new ArrayList<Object>();
+		//进行动态拼接sql
+		StringBuffer builder = new StringBuffer();
+		builder.append("INSERT INTO "+entitys.get(0).getClass().getSimpleName()+"(");
+		builder.append(IdName.trim()+",");
+		for (String fieldName : fieldNames) {
+			if(!fieldName.equals(IdName)){
+				builder.append(fieldName+",");
+			}
+		}
+		builder.deleteCharAt(builder.length() - 1);
+		builder.append(") VALUES");
+		//获取所有的属性字段以及value字段
+		for (E entity : entitys) {  
+			for (String key: field.keySet()) {
+				fieldNames.add(key);
+				values.add(FieldUtils.getFieldValueByName(key,entity));
+			}
+			//创建message处理器
+			StringBuffer buffer = new StringBuffer();
+			buffer.append("(");
+			for (int i = 0,count = fieldNames.size();i < count;i ++) {
+				buffer.append("''{"+i+"}'',");
+			}
+			buffer.deleteCharAt(buffer.length() - 1);
+			buffer.append("),");
+			Object[] args = new Object[fieldNames.size()];
+			//如果需要默认自己添加id
+			if(defultId){
+				args[0] = batch_sql;
+			}else{
+				args[0] = null;
+			}
+			for (int i = 1,count = args.length;i < count; i++) {
+				args[i] = values.get(i);
+			}
+			MessageFormat form = new MessageFormat(buffer.toString());  
+			builder.append(form.format(args));  
+		}  
+		String sql = builder.toString();  
+		sql = sql.substring(0, sql.length()-1);  
+		jdbcTemplate.update(sql);  
 	}
 
 }
