@@ -1,6 +1,8 @@
 package com.cgxt.controller;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import javax.servlet.http.HttpServletResponse;
@@ -59,13 +61,28 @@ public class UserController extends BaseController{
 		//创建主表--角色表
 		Rose rose = new Rose();
 		rose.setRoseName("超级管理员权限");
+		//测试1000条jdbc新增方法时间差
+		/*List<User> users = new ArrayList<User>();
+		for (int i = 0; i < 1000; i++) {
+			User user = new User();
+			//user.setId(1);
+			user.setAge("110");
+			user.setUserName("aaa");
+			user.setPassword("aaa");
+			user.setRoseCode((long)1);
+			users.add(user);
+		}*/
+		StringBuilder builder = new StringBuilder();
+		builder.append("INSERT INTO USER (id,age,PASSWORD,roseCode,userName) VALUES((SELECT IFNULL(MAX(ab.id),0)+1 FROM USER ab),'110','123456',1,'admin'),");
+		for (int i = 1; i <= 100; i++) {
+			builder.append("((SELECT IFNULL(MAX(ab.id),0)+1 FROM USER ab),'110','123456',1,'admin')");
+			if(i < 1000){
+				builder.append(",");
+			}else{
+				builder.append(";");
+			}
+		}
 		//子表user
-		User user = new User();
-		//user.setId(1);
-		user.setAge("110");
-		user.setUserName("admin123");
-		user.setPassword("123456789");
-		//user.setRoseCode((long)1);
 		//map
 		/*Map<String,Object> whereMap = new HashMap<String, Object>();
 		whereMap.put("age","20");
@@ -77,7 +94,13 @@ public class UserController extends BaseController{
 			//userService.JDBCsave(rose,"id",Sqltype.MYSQL);
 			//userService.JDBCsave(user,"id",Sqltype.MYSQL);
 			//userService.JdbcUpdate(user,whereMap);
-			userService.JdbcDelete(user);
+			long curTime = System.currentTimeMillis();
+			//userService.batchSave(users,"id",Sqltype.MYSQL);
+			//userService.insertAll(users);
+			userService.batchAddBySql(new String(builder.toString()));
+			System.out.println("所用时间为："+(System.currentTimeMillis() - curTime)+"ms");
+			//users = null;
+			//userService.JdbcDelete(user);
 			//在插入子表
 			map.put("error",false);
 			map.put("msg","主子表一起插入成功，恭喜哈");

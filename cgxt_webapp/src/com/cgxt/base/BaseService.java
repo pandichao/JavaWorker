@@ -141,7 +141,6 @@ T findByPk(Long sid);
     public List<Map<String, Object>> callProcedure(String proceName, final List<Object> params);
     
     /**=========================================================================*/
-    void JdbcUpdate(T entity);
     
     /**
      *测试用，同时添加主子表关系（用hibernate完成，一对一，适用于子表关联插入的是主表的主键） 
@@ -183,4 +182,13 @@ T findByPk(Long sid);
 	 * @return
 	 */
 	public <E> void JdbcDelete(E entity);
+	
+	/**
+     * 批量保存jdbc（新增）
+     * @param <E>
+     * @param ids
+     */
+    <E> void batchSave(List<E> entitys,String IdName,Sqltype type);
+    
+    public void batchAddBySql(String sql);
 }  

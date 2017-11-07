@@ -87,11 +87,6 @@ public class BaseServiceImpl<T extends Serializable> implements BaseService<T> {
 	}
 
 	@Override
-	public void JdbcUpdate(T entity) {
-		basedao.JdbcUpdate(entity);
-	}
-
-	@Override
 	public T findByPk(Long sid) {
 		return basedao.findByPk(sid);
 	}
@@ -211,6 +206,16 @@ public class BaseServiceImpl<T extends Serializable> implements BaseService<T> {
 	@Override
 	public <E> void JdbcDelete(E entity) {
 		basedao.JdbcDelete(entity);
+	}
+
+	@Override
+	public <E> void batchSave(List<E> entitys, String IdName, Sqltype type) {
+		basedao.batchSave(entitys, IdName, type);
+	}
+
+	@Override
+	public void batchAddBySql(String sql) {
+       basedao.batchAddBySql(sql);		
 	}  
       
 }  

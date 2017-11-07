@@ -11,7 +11,9 @@ import java.sql.SQLException;
 import java.sql.Types;
 import java.text.MessageFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -30,6 +32,8 @@ import org.hibernate.transform.Transformers;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
+
+import aj.org.objectweb.asm.Type;
 
 import com.cgxt.utils.ComUtil;
 import com.cgxt.utils.classUtils.FieldUtils;
@@ -463,57 +467,14 @@ public class BaseDaoImpl<T extends Serializable> implements BaseDao<T>{
 	//========================尝试集成SpringJdbc===================================
 
 
-	@Override
+	/*	@Override
 	public void JdbcUpdate(T entity) {
 		String sql = this.makeSql(SQL_UPDATE);
 		Object[] args = this.setArgs(entity, SQL_UPDATE);
 		int[] argTypes = this.setArgTypes(entity, SQL_UPDATE);
 		jdbcTemplate.update(sql, args, argTypes);
-	}
+	}*/
 
-	/**
-	 * 组装SQl
-	 * 
-	 * @param entityClass
-	 * @param sqlFlag
-	 * @return
-	 */
-	public String makeSql(String sqlFlag) {
-		StringBuffer sql = new StringBuffer();
-		Field[] fields = entityClass.getDeclaredFields();
-		if (sqlFlag.equals(SQL_INSERT)) {
-			sql.append(" INSERT INTO " + entityClass.getSimpleName());
-			sql.append("(");
-			for (int i = 0; fields != null && i < fields.length; i++) {
-				fields[i].setAccessible(true); // 暴力反射
-				String column = fields[i].getName();
-				sql.append(column).append(",");
-			}
-			sql = sql.deleteCharAt(sql.length() - 1);
-			sql.append(") VALUES (");
-			for (int i = 0; fields != null && i < fields.length; i++) {
-				sql.append("?,");
-			}
-			sql = sql.deleteCharAt(sql.length() - 1);
-			sql.append(")");
-		} else if (sqlFlag.equals(SQL_UPDATE)) {
-			sql.append(" UPDATE " + entityClass.getSimpleName() + " SET ");
-			for (int i = 0; fields != null && i < fields.length; i++) {
-				fields[i].setAccessible(true); // 暴力反射
-				String column = fields[i].getName();
-				if (column.equals("id")) { // id 代表主键
-					continue;
-				}
-				sql.append(column).append("=").append("?,");
-			}
-			sql = sql.deleteCharAt(sql.length() - 1);
-			sql.append(" WHERE id=?");
-		} else if (sqlFlag.equals(SQL_DELETE)) {
-			sql.append(" DELETE FROM " + entityClass.getSimpleName() + " WHERE id=?");
-		}
-		System.out.println("SQL=" + sql);
-		return sql.toString();
-	}
 
 	/**
 	 * 设置参数
@@ -706,7 +667,7 @@ public class BaseDaoImpl<T extends Serializable> implements BaseDao<T>{
 		ORACLE,
 		SQLSERVER
 	}
-	
+
 	/**me
 	 * @param entity
 	 * @param IdName
@@ -714,7 +675,6 @@ public class BaseDaoImpl<T extends Serializable> implements BaseDao<T>{
 	 */
 	@Override
 	public <E> int JDBCsave(E entity,String IdName,Sqltype type) {
-		System.out.println("entity:"+entity);
 		Object IdValue = FieldUtils.getFieldValueByName(IdName,entity);
 		if(ComUtil.isEmpty(IdValue)){
 			//如果为空，说明当前没有设置主键，那么我们默认自动设置
@@ -722,14 +682,14 @@ public class BaseDaoImpl<T extends Serializable> implements BaseDao<T>{
 			buffer.append("select ");
 			switch (type) {
 			case ORACLE:
-				buffer.append("nvl(MAX(ab."+IdName+"),0))+1");
+				buffer.append(" nvl(MAX(ab."+IdName+"),0))+1");
 				break;
-            case SQLSERVER:
-            	buffer.append("isnull(MAX(ab."+IdName+"),0)+1");
-            	break;
-            case MYSQL:
-            	buffer.append("ifnull(MAX(ab."+IdName+"),0)+1");
-            	break;
+			case SQLSERVER:
+				buffer.append(" isnull(MAX(ab."+IdName+"),0)+1");
+				break;
+			case MYSQL:
+				buffer.append(" ifnull(MAX(ab."+IdName+"),0)+1");
+				break;
 			}
 			buffer.append(" from "+entity.getClass().getSimpleName()+" as ab;");
 			Long Id = jdbcTemplate.queryForObject(buffer.toString(),Long.class);
@@ -737,7 +697,7 @@ public class BaseDaoImpl<T extends Serializable> implements BaseDao<T>{
 		}
 		Map<String, List> valueMap = FieldUtils.getNotnullFieldsAndValueMap(entity);
 		List<String> fieldsNames = valueMap.get("fields");
-	    List<Object> values = valueMap.get("values");
+		List<Object> values = valueMap.get("values");
 		String sql = this.makeSql(SQL_INSERT,IdName,entity.getClass(),fieldsNames,null,null);
 		String[] toArray = this.listToArray(fieldsNames,String.class);
 		int[] argTypes = this.setArgTypes(entity.getClass(),toArray);
@@ -745,7 +705,7 @@ public class BaseDaoImpl<T extends Serializable> implements BaseDao<T>{
 			return jdbcTemplate.update(sql.toString(), values.toArray(), argTypes);
 		}
 	}
-	
+
 	/**
 	 * SpringJdbc的修改的方法
 	 * @param entity
@@ -775,9 +735,9 @@ public class BaseDaoImpl<T extends Serializable> implements BaseDao<T>{
 			return jdbcTemplate.update(sql, setValues.toArray(), argTypes);
 		}
 	}
-	
+
 	/**
-	 * jdbc的删除方法
+	 * 直接传对象进行删除
 	 * @param <E>
 	 * @return
 	 */
@@ -786,15 +746,58 @@ public class BaseDaoImpl<T extends Serializable> implements BaseDao<T>{
 		//获取所有的field，作为whereList
 		List<String> fieldNames = (List<String>)fieldsAndValueMap.get("fields");
 		List<Object> values = fieldsAndValueMap.get("values");
-		String sql = this.makeSql(SQL_DELETE, null,entity.getClass(),null, null, fieldNames);
-	    //获取所有的类型
-		System.out.println("参数数量为："+fieldNames.size());
+		String sql2 = this.makeSql(SQL_DELETE,null,entity.getClass(),null,null,fieldNames);
+		//获取所有的类型
 		String[] toArray = this.listToArray(fieldNames,String.class);
 		int[] types = this.setArgTypes(entity.getClass(),toArray);
 		synchronized (jdbcTemplate) {
-		  return jdbcTemplate.update(sql,values,types);	
+			//		  return jdbcTemplate.update(sql.toString());
+			return jdbcTemplate.update(sql2,values.toArray(),types);
 		}
 	}
+
+	/**
+	 * 自己组装成完整的del和新增所需sql语句（x）
+	 * @param clazz   
+	 * @param fieldNames  当前类的字段名集合
+	 * @param values      需要拼接的值的集合
+	 * @param types       当前类字段对应的类型
+	 * @return
+	 * @throws NumberFormatException
+	 */
+	public <E> String makeDelSql(Class<?> clazz,List<String> fieldsNames,
+			List<Object> values, int[] types) throws NumberFormatException {
+		StringBuffer sql = new StringBuffer("DELETE FROM "+clazz.getSimpleName()+" WHERE ");
+		for(int i =0,count = types.length;i<count;i++){
+			sql.append(" "+fieldsNames.get(i)+"= ");
+			switch (types[i]) {
+			case Types.VARCHAR:
+				sql.append(" '").append(values.get(i).toString()).append("'");
+				break;
+			case Types.BIGINT:
+				sql.append(" "+Long.parseLong(values.get(i).toString()));
+				break;
+			case Types.INTEGER:
+				sql.append(" "+Integer.parseInt(values.get(i).toString()));
+				break;
+			case Types.BIT:
+				sql.append(" "+Boolean.parseBoolean(values.get(i).toString()));
+				break;
+			case Types.DECIMAL:
+				sql.append(" "+Double.parseDouble(values.get(i).toString()));
+				break;
+			case Types.DATE:
+				sql.append(" "+values.get(i).toString());
+				break;
+			}
+			if(i < count - 1)   sql.append(" AND ");	
+		}
+		sql.append(" ;");
+		return sql.toString();
+	}
+
+
+
 	/**me
 	 * 重新定义的组装sql的方法
 	 * @param sqlFlag  取值 SQL_INSERT:需要进行原生新增sql语句拼接，只要前三个参数，最后一个参数可以不传 
@@ -802,8 +805,8 @@ public class BaseDaoImpl<T extends Serializable> implements BaseDao<T>{
 	 *                    SQL_DELETE ： 如果需要删除，直接传之前的实体就可以   
 	 * @param IdName   主键的字段名
 	 * @param bean     需要操作的实体
-	 * @param setMap   执行
-	 * @param whereMap
+	 * @param setMap   执行update方法的时候需要修改的字段名的集合
+	 * @param whereMap 执行update和del方法的时候需要根据什么字段条件进行修改或者删除的字段名集合
 	 * @return
 	 */
 	public String makeSql(String sqlFlag,String IdName,Class<?> clazz,List<String> fieldsNames,List<String> setList,List<String> whereList){
@@ -831,7 +834,7 @@ public class BaseDaoImpl<T extends Serializable> implements BaseDao<T>{
 			builder.append(" WHERE ");
 			for (int i = 0;i < whereList.size();i ++) {
 				if(i < whereList.size() - 1){
-					builder.append(whereList.get(i) +" =? and ");
+					builder.append(whereList.get(i) +" =? AND ");
 				}else{
 					builder.append(whereList.get(i)+"=?");
 				}
@@ -841,12 +844,12 @@ public class BaseDaoImpl<T extends Serializable> implements BaseDao<T>{
 			builder.append(" DELETE FROM " + clazz.getSimpleName() + " WHERE ");
 			for (int i = 0;i < whereList.size();i ++) {
 				if(i < whereList.size() - 1){
-					builder.append(whereList.get(i)+"=? and ");
+					builder.append(whereList.get(i)+"=? AND ");
 				}else{
-					builder.append(whereList.get(i)+"=?");
+					builder.append(whereList.get(i)+"=? ");
 				}
 			}
-			//builder.append(" ;");
+			builder.append(" ;");
 		}
 		return builder.toString();
 	}
@@ -903,6 +906,20 @@ public class BaseDaoImpl<T extends Serializable> implements BaseDao<T>{
 			dest[i] = src.get(i);
 		}
 		return (T[]) dest;
+	}
+
+	@Override
+	public <E> void batchSave(List<E> entitys, String IdName, Sqltype type) {
+        for (E e : entitys) {
+			this.JDBCsave(e, IdName, type);
+		}		
+	}
+
+	@Override
+	public void batchAddBySql(String sql) {
+		synchronized (jdbcTemplate) {
+		  jdbcTemplate.batchUpdate(sql);	
+		}
 	}
 
 }
