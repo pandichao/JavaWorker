@@ -211,6 +211,11 @@ public class BaseServiceImpl<T extends Serializable> implements BaseService<T> {
 	@Override
 	public <E> void JdbcDelete(E entity) {
 		basedao.JdbcDelete(entity);
+	}
+
+	@Override
+	public <E> void batchJdbcSave(List<E> entitys, String IdName, Sqltype type) {
+		basedao.batchJdbcSave(entitys, IdName, type);
 	}  
       
 }  

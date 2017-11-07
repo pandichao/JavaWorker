@@ -1,6 +1,8 @@
 package com.cgxt.controller;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import javax.servlet.http.HttpServletResponse;
@@ -60,11 +62,16 @@ public class UserController extends BaseController{
 		Rose rose = new Rose();
 		rose.setRoseName("超级管理员权限");
 		//子表user
-		User user = new User();
-		//user.setId(1);
-		user.setAge("110");
-		user.setUserName("admin123");
-		user.setPassword("123456789");
+		List<User> users = new ArrayList<User>();
+		for (int i = 0; i < 100000; i++) {
+			User user = new User();
+			//user.setId(1);
+			user.setAge("110");
+			user.setUserName("admin123");
+			user.setPassword("123456789");
+			user.setRoseCode((long)1);
+			users.add(user);
+		}
 		//user.setRoseCode((long)1);
 		//map
 		/*Map<String,Object> whereMap = new HashMap<String, Object>();
@@ -77,8 +84,13 @@ public class UserController extends BaseController{
 			//userService.JDBCsave(rose,"id",Sqltype.MYSQL);
 			//userService.JDBCsave(user,"id",Sqltype.MYSQL);
 			//userService.JdbcUpdate(user,whereMap);
-			userService.JdbcDelete(user);
+			//userService.JdbcDelete(user);
 			//在插入子表
+			long time = System.currentTimeMillis();
+			//userService.batchJdbcSave(users,"id",Sqltype.MYSQL);
+			userService.insertAll(users);
+			long ntime = System.currentTimeMillis();
+			System.out.println("时间差为："+(ntime - time)/1000+"s"+(ntime - time)%1000+"ms");
 			map.put("error",false);
 			map.put("msg","主子表一起插入成功，恭喜哈");
 		} catch (Exception e) {
