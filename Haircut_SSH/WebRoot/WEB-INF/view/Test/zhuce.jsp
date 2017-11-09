@@ -9,6 +9,16 @@
     <%@include file="../../../../base.jsp" %>
     <script type="text/javascript" src="${pageContext.request.contextPath}/js/login.js"></script>
     <script type="text/javascript">
+    $(function(){
+    	//回车事件
+    	 document.onkeydown = function(e){
+    	    var ev = document.all ? window.event : e;
+    	    if(ev.keyCode==13) {
+    	    	//处理事件
+    		        save();
+    	     }
+    	}
+      });
     //保存
       function save(){
     	  var loginName=$("#loginName").val();

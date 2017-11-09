@@ -39,18 +39,18 @@
 	}
     //取消
     function exit(){
-    		//if (confirm("您想要退出该系统吗？")){
+    	$.messager.confirm('确认','您想要退出该系统吗？',function(r){
+    		
+    	    if (r){    
+    	    	window.location.href="/Haircut_SSH/User/cancle";   
+    	    }    
+    	});
+    	
+    		 /* if (confirm("您想要退出该系统吗？")){
     		    // 退出操作;
-    		     /* $.ajax({
-    		    	 url:"/Haircut_SSH/User/cancle",
-    			    	type:"post",
-    			    	async:false,
-    			    	success:function(data){
-    			    		
-    			    	}
-    		     }); */
+    		     
     			window.location.href="/Haircut_SSH/User/cancle";
-    		//}
+    		}  */
     }
     </script>
   </head>
@@ -59,16 +59,17 @@
   <div data-options="region:'north',title:'会员管理系统',split:true" style="height:100px;background-color: #dddddd;">
   <!-- <font size="5px" style="黑体">会员管理系统</font> -->
   	<font size="4px">当前登录用户：</font><font size="4px" color="red">${userName }</font>
+  	<input type="hidden" id="user" value="${userName }"/>
   	<div id="time" style="float: right;">现在时间：【<font color="red" id="gd" size="4px"></font>】<br><br>
-  		<a href="#"onclick="exit();">退出登录</a>
+  		<a href="javascript:void(0)" onclick="exit();">退出登录</a>
   	</div>
   </div>   
     <!-- <div data-options="region:'south',title:'底部',split:true" style="height:100px;"></div>  --> 
     <div data-options="region:'west',title:'功能列表',split:true" style="width:12%;">
     	<div id="aa" class="easyui-accordion" data-options="fit:true,border:true" >
-			    <div title="考勤申请" data-options="iconCls:'icon-reload',selected:true" style="padding:10px;">
-			          <a href="javascript:openPage('/Haircut_SSH/member/mgt_add','会员注册')">会员注册</a><br/>
-			        <a href="javascript:openPage('Qiudakaym.jsp','消费记录')">消费记录</a><br/>
+			    <div title="会员管理" data-options="iconCls:'icon-reload',selected:true" style="padding:10px;">
+			          <a href="javascript:openPage('/Haircut_SSH/member/index','会员管理')">会 员 管 理</a><br/>
+			        <a href="javascript:openPage('Qiudakaym.jsp','消费记录')">消 费 记 录</a><br/>
 			    </div>
 			    
 		</div>
