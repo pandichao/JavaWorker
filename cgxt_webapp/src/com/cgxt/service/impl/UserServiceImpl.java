@@ -7,8 +7,8 @@ import com.cgxt.base.BaseServiceImpl;
 import com.cgxt.bean.User;
 import com.cgxt.dao.UserDao;
 import com.cgxt.service.UserService;
-
 @Service
+/*@Service("userService")*/
 public class UserServiceImpl extends BaseServiceImpl<User> implements UserService{
     @Autowired
 	UserDao userDao;

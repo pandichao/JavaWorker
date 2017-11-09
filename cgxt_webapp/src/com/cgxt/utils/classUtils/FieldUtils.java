@@ -150,7 +150,12 @@ public class FieldUtils {
                 String result = null;  
                 if ("Date".equals(fieldType)) {  
                     result = fmtDate((Date) fieldVal);  
-                } else {  
+                }else if("String".equals(fieldType)){
+                	if (null != fieldVal) {  
+                        result = String.valueOf(fieldVal).replaceAll("'", "\\\\'");  
+                    } 
+                }
+                else {  
                     if (null != fieldVal) {  
                         result = String.valueOf(fieldVal);  
                     }  

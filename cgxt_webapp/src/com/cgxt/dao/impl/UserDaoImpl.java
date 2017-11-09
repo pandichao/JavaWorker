@@ -4,8 +4,8 @@ import org.springframework.stereotype.Repository;
 import com.cgxt.base.BaseDaoImpl;
 import com.cgxt.bean.User;
 import com.cgxt.dao.UserDao;
-
 @Repository
+/*@Repository("userDao")*/
 public class UserDaoImpl extends BaseDaoImpl<User> implements UserDao{
 
 	@Override
