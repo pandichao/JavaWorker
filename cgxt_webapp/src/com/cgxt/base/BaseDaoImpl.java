@@ -11,9 +11,7 @@ import java.sql.SQLException;
 import java.sql.Types;
 import java.text.MessageFormat;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -30,13 +28,13 @@ import org.hibernate.criterion.Projections;
 import org.hibernate.jdbc.Work;
 import org.hibernate.transform.Transformers;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 
-import aj.org.objectweb.asm.Type;
-
 import com.cgxt.utils.ComUtil;
 import com.cgxt.utils.classUtils.FieldUtils;
+import com.mysql.jdbc.Buffer;
 
 /*@Repository("baseDao")*/
 public class BaseDaoImpl<T extends Serializable> implements BaseDao<T>{          
@@ -467,14 +465,57 @@ public class BaseDaoImpl<T extends Serializable> implements BaseDao<T>{
 	//========================尝试集成SpringJdbc===================================
 
 
-	/*	@Override
+	@Override
 	public void JdbcUpdate(T entity) {
 		String sql = this.makeSql(SQL_UPDATE);
 		Object[] args = this.setArgs(entity, SQL_UPDATE);
 		int[] argTypes = this.setArgTypes(entity, SQL_UPDATE);
 		jdbcTemplate.update(sql, args, argTypes);
-	}*/
+	}
 
+	/**
+	 * 组装SQl
+	 * 
+	 * @param entityClass
+	 * @param sqlFlag
+	 * @return
+	 */
+	public String makeSql(String sqlFlag) {
+		StringBuffer sql = new StringBuffer();
+		Field[] fields = entityClass.getDeclaredFields();
+		if (sqlFlag.equals(SQL_INSERT)) {
+			sql.append(" INSERT INTO " + entityClass.getSimpleName());
+			sql.append("(");
+			for (int i = 0; fields != null && i < fields.length; i++) {
+				fields[i].setAccessible(true); // 暴力反射
+				String column = fields[i].getName();
+				sql.append(column).append(",");
+			}
+			sql = sql.deleteCharAt(sql.length() - 1);
+			sql.append(") VALUES (");
+			for (int i = 0; fields != null && i < fields.length; i++) {
+				sql.append("?,");
+			}
+			sql = sql.deleteCharAt(sql.length() - 1);
+			sql.append(")");
+		} else if (sqlFlag.equals(SQL_UPDATE)) {
+			sql.append(" UPDATE " + entityClass.getSimpleName() + " SET ");
+			for (int i = 0; fields != null && i < fields.length; i++) {
+				fields[i].setAccessible(true); // 暴力反射
+				String column = fields[i].getName();
+				if (column.equals("id")) { // id 代表主键
+					continue;
+				}
+				sql.append(column).append("=").append("?,");
+			}
+			sql = sql.deleteCharAt(sql.length() - 1);
+			sql.append(" WHERE id=?");
+		} else if (sqlFlag.equals(SQL_DELETE)) {
+			sql.append(" DELETE FROM " + entityClass.getSimpleName() + " WHERE id=?");
+		}
+		System.out.println("SQL=" + sql);
+		return sql.toString();
+	}
 
 	/**
 	 * 设置参数
@@ -675,23 +716,11 @@ public class BaseDaoImpl<T extends Serializable> implements BaseDao<T>{
 	 */
 	@Override
 	public <E> int JDBCsave(E entity,String IdName,Sqltype type) {
+		System.out.println("entity:"+entity);
 		Object IdValue = FieldUtils.getFieldValueByName(IdName,entity);
 		if(ComUtil.isEmpty(IdValue)){
 			//如果为空，说明当前没有设置主键，那么我们默认自动设置
-			StringBuffer buffer = new StringBuffer();
-			buffer.append("select ");
-			switch (type) {
-			case ORACLE:
-				buffer.append(" nvl(MAX(ab."+IdName+"),0))+1");
-				break;
-			case SQLSERVER:
-				buffer.append(" isnull(MAX(ab."+IdName+"),0)+1");
-				break;
-			case MYSQL:
-				buffer.append(" ifnull(MAX(ab."+IdName+"),0)+1");
-				break;
-			}
-			buffer.append(" from "+entity.getClass().getSimpleName()+" as ab;");
+			StringBuffer buffer = getIdValue(entity, IdName, type);
 			Long Id = jdbcTemplate.queryForObject(buffer.toString(),Long.class);
 			entity = FieldUtils.setFieldValueByName(IdName, Id.toString(),entity);
 		}
@@ -704,6 +733,31 @@ public class BaseDaoImpl<T extends Serializable> implements BaseDao<T>{
 		synchronized (jdbcTemplate) {
 			return jdbcTemplate.update(sql.toString(), values.toArray(), argTypes);
 		}
+	}
+
+	/**
+	 * 设置主键的默认查询语句
+	 * @param entity
+	 * @param IdName
+	 * @param type
+	 * @return
+	 */
+	private <E> StringBuffer getIdValue(E entity, String IdName, Sqltype type) {
+		StringBuffer buffer = new StringBuffer();
+		buffer.append("select ");
+		switch (type) {
+		case ORACLE:
+			buffer.append("nvl(MAX(ab."+IdName+"),0))+1");
+			break;
+		case SQLSERVER:
+			buffer.append("isnull(MAX(ab."+IdName+"),0)+1");
+			break;
+		case MYSQL:
+			buffer.append("ifnull(MAX(ab."+IdName+"),0)+1");
+			break;
+		}
+		buffer.append(" from "+entity.getClass().getSimpleName()+" as ab");
+		return buffer;
 	}
 
 	/**
@@ -737,7 +791,7 @@ public class BaseDaoImpl<T extends Serializable> implements BaseDao<T>{
 	}
 
 	/**
-	 * 直接传对象进行删除
+	 * jdbc的删除方法
 	 * @param <E>
 	 * @return
 	 */
@@ -746,58 +800,15 @@ public class BaseDaoImpl<T extends Serializable> implements BaseDao<T>{
 		//获取所有的field，作为whereList
 		List<String> fieldNames = (List<String>)fieldsAndValueMap.get("fields");
 		List<Object> values = fieldsAndValueMap.get("values");
-		String sql2 = this.makeSql(SQL_DELETE,null,entity.getClass(),null,null,fieldNames);
+		String sql = this.makeSql(SQL_DELETE, null,entity.getClass(),null, null, fieldNames);
 		//获取所有的类型
+		System.out.println("参数数量为："+fieldNames.size());
 		String[] toArray = this.listToArray(fieldNames,String.class);
 		int[] types = this.setArgTypes(entity.getClass(),toArray);
 		synchronized (jdbcTemplate) {
-			//		  return jdbcTemplate.update(sql.toString());
-			return jdbcTemplate.update(sql2,values.toArray(),types);
+			return jdbcTemplate.update(sql,values,types);	
 		}
 	}
-
-	/**
-	 * 自己组装成完整的del和新增所需sql语句（x）
-	 * @param clazz   
-	 * @param fieldNames  当前类的字段名集合
-	 * @param values      需要拼接的值的集合
-	 * @param types       当前类字段对应的类型
-	 * @return
-	 * @throws NumberFormatException
-	 */
-	public <E> String makeDelSql(Class<?> clazz,List<String> fieldsNames,
-			List<Object> values, int[] types) throws NumberFormatException {
-		StringBuffer sql = new StringBuffer("DELETE FROM "+clazz.getSimpleName()+" WHERE ");
-		for(int i =0,count = types.length;i<count;i++){
-			sql.append(" "+fieldsNames.get(i)+"= ");
-			switch (types[i]) {
-			case Types.VARCHAR:
-				sql.append(" '").append(values.get(i).toString()).append("'");
-				break;
-			case Types.BIGINT:
-				sql.append(" "+Long.parseLong(values.get(i).toString()));
-				break;
-			case Types.INTEGER:
-				sql.append(" "+Integer.parseInt(values.get(i).toString()));
-				break;
-			case Types.BIT:
-				sql.append(" "+Boolean.parseBoolean(values.get(i).toString()));
-				break;
-			case Types.DECIMAL:
-				sql.append(" "+Double.parseDouble(values.get(i).toString()));
-				break;
-			case Types.DATE:
-				sql.append(" "+values.get(i).toString());
-				break;
-			}
-			if(i < count - 1)   sql.append(" AND ");	
-		}
-		sql.append(" ;");
-		return sql.toString();
-	}
-
-
-
 	/**me
 	 * 重新定义的组装sql的方法
 	 * @param sqlFlag  取值 SQL_INSERT:需要进行原生新增sql语句拼接，只要前三个参数，最后一个参数可以不传 
@@ -805,8 +816,8 @@ public class BaseDaoImpl<T extends Serializable> implements BaseDao<T>{
 	 *                    SQL_DELETE ： 如果需要删除，直接传之前的实体就可以   
 	 * @param IdName   主键的字段名
 	 * @param bean     需要操作的实体
-	 * @param setMap   执行update方法的时候需要修改的字段名的集合
-	 * @param whereMap 执行update和del方法的时候需要根据什么字段条件进行修改或者删除的字段名集合
+	 * @param setMap   执行
+	 * @param whereMap
 	 * @return
 	 */
 	public String makeSql(String sqlFlag,String IdName,Class<?> clazz,List<String> fieldsNames,List<String> setList,List<String> whereList){
@@ -834,7 +845,7 @@ public class BaseDaoImpl<T extends Serializable> implements BaseDao<T>{
 			builder.append(" WHERE ");
 			for (int i = 0;i < whereList.size();i ++) {
 				if(i < whereList.size() - 1){
-					builder.append(whereList.get(i) +" =? AND ");
+					builder.append(whereList.get(i) +" =? and ");
 				}else{
 					builder.append(whereList.get(i)+"=?");
 				}
@@ -844,12 +855,12 @@ public class BaseDaoImpl<T extends Serializable> implements BaseDao<T>{
 			builder.append(" DELETE FROM " + clazz.getSimpleName() + " WHERE ");
 			for (int i = 0;i < whereList.size();i ++) {
 				if(i < whereList.size() - 1){
-					builder.append(whereList.get(i)+"=? AND ");
+					builder.append(whereList.get(i)+"=? and ");
 				}else{
-					builder.append(whereList.get(i)+"=? ");
+					builder.append(whereList.get(i)+"=?");
 				}
 			}
-			builder.append(" ;");
+			//builder.append(" ;");
 		}
 		return builder.toString();
 	}
@@ -909,16 +920,112 @@ public class BaseDaoImpl<T extends Serializable> implements BaseDao<T>{
 	}
 
 	@Override
-	public <E> void batchSave(List<E> entitys, String IdName, Sqltype type) {
-        for (E e : entitys) {
-			this.JDBCsave(e, IdName, type);
-		}		
+	public <E> void batchJdbcSave(List<E> entitys, String IdName, Sqltype type) {
+		StringBuilder sqls = new StringBuilder();
+		for (E entity : entitys) {
+			Object IdValue = FieldUtils.getFieldValueByName(IdName,entity);
+			//获取所有的属性字段以及value字段
+			Map<String, List> fieldsValues = FieldUtils.getNotnullFieldsAndValueMap(entity);
+			List<String> fieldNames = (List<String>)fieldsValues.get("fields");
+			List<Object> values = fieldsValues.get("values");
+			String batch_sql = "";
+			if(ComUtil.isEmpty(IdValue)){
+				//如果为空，说明当前没有设置主键，那么我们默认自动设置
+				batch_sql = "("+getIdValue(entity, IdName, type)+")";
+				//fieldNames.add(0,IdName.trim());
+			}
+			//进行动态拼接sql
+			StringBuilder builder = new StringBuilder();
+			builder.append("INSERT INTO "+entity.getClass().getSimpleName()+"(");
+			builder.append(IdName.trim()+",");
+			for (String field : fieldNames) {
+				builder.append(field+",");
+			}
+			builder.deleteCharAt(builder.length() - 1);
+			builder.append(") VALUES(");
+			builder.append(batch_sql).append(",");
+			//获取所有类型
+			int[] types = this.setArgTypes(entity.getClass(),listToArray(fieldNames,String.class));		
+			for(int i = 0,count = values.size();i < count;i ++) {
+				if(types[i] == Types.BIGINT){
+					builder.append(Long.parseLong(values.get(i).toString())+",");
+				}else if(types[i] == Types.BIT){
+					builder.append(Boolean.parseBoolean(values.get(i).toString())+",");
+				}else if(types[i] == Types.DATE){
+					builder.append(values.get(i).toString()+",");
+				}else if(types[i] == Types.VARCHAR){
+					builder.append("'"+values.get(i).toString()+"',");
+				}else if(types[i] == Types.DECIMAL){
+					builder.append(Double.parseDouble(values.get(i).toString())+",");
+				}else if(types[i] == Types.INTEGER){
+					builder.append(Integer.parseInt(values.get(i).toString())+",");
+				}
+			}
+			builder.deleteCharAt(builder.length() - 1);
+			builder.append(");");
+			synchronized (jdbcTemplate) {
+				jdbcTemplate.batchUpdate(builder.toString());	
+			}
+		}
 	}
 
 	@Override
-	public void batchAddBySql(String sql) {
+	public <E> void batchInsertJDBC3(List<E> entitys, String IdName,
+			Sqltype type,boolean defultId) throws DataAccessException {
+		String batch_sql = "";
+		if(defultId){
+			//如果为空，说明当前没有设置主键，那么我们默认自动设置
+			batch_sql = "("+getIdValue(entitys.get(0), IdName, type)+")";
+		}
+		//获取所有属性和value
+		Map<String, Object> field = FieldUtils.getFieldValueMap(entitys.get(0));
+		List<String> fieldNames = new ArrayList<String>();
+		List<Object> values = new ArrayList<Object>();
+		//进行动态拼接sql
+		StringBuffer builder = new StringBuffer();
+		builder.append("INSERT INTO "+entitys.get(0).getClass().getSimpleName()+"(");
+		builder.append(IdName.trim()+",");
+		for (String fieldName : fieldNames) {
+			if(!fieldName.equals(IdName)){
+				builder.append(fieldName+",");
+			}
+		}
+		builder.deleteCharAt(builder.length() - 1);
+		builder.append(") VALUES");
+		//获取所有的属性字段以及value字段
+		int j = 0;
+		for (E entity : entitys) {
+			j++;
+			for (String key: field.keySet()) {
+				fieldNames.add(key);
+				values.add(FieldUtils.getFieldValueByName(key,entity));
+			}
+			//创建message处理器
+			StringBuffer buffer = new StringBuffer();
+			buffer.append("(");
+			for (int i = 0,count = fieldNames.size();i < count;i ++) {
+				buffer.append("''{"+i+"}'',");
+			}
+			buffer.deleteCharAt(buffer.length() - 1);
+			buffer.append("),");
+			Object[] args = new Object[fieldNames.size()];
+			//如果需要默认自己添加id
+			if(defultId){
+				args[0] = batch_sql;
+			}else{
+				args[0] = null;
+			}
+			for (int i = 1,count = args.length;i < count; i++) {
+				args[i] = values.get(i);
+			}
+			MessageFormat form = new MessageFormat(buffer.toString());  
+			builder.append(form.format(args));
+			System.out.println("第"+j+"次");
+		}  
+		String sql = builder.toString();  
+		sql = sql.substring(0, sql.length()-1);
 		synchronized (jdbcTemplate) {
-		  jdbcTemplate.batchUpdate(sql);	
+			jdbcTemplate.update(sql);  
 		}
 	}
 

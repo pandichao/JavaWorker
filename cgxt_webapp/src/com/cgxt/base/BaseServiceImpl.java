@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Map;
 import org.hibernate.criterion.DetachedCriteria;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataAccessException;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.cgxt.base.BaseDaoImpl.Sqltype;
@@ -84,6 +85,11 @@ public class BaseServiceImpl<T extends Serializable> implements BaseService<T> {
 	public List<Map<String, Object>> callProcedure(String proceName,
 			List<Object> params) {
 		return basedao.callProcedure(proceName, params);
+	}
+
+	@Override
+	public void JdbcUpdate(T entity) {
+		basedao.JdbcUpdate(entity);
 	}
 
 	@Override
@@ -209,13 +215,14 @@ public class BaseServiceImpl<T extends Serializable> implements BaseService<T> {
 	}
 
 	@Override
-	public <E> void batchSave(List<E> entitys, String IdName, Sqltype type) {
-		basedao.batchSave(entitys, IdName, type);
+	public <E> void batchJdbcSave(List<E> entitys, String IdName, Sqltype type) {
+		basedao.batchJdbcSave(entitys, IdName, type);
 	}
 
 	@Override
-	public void batchAddBySql(String sql) {
-       basedao.batchAddBySql(sql);		
+	public <E> void batchInsertJDBC3(List<E> entitys, String IdName,
+			Sqltype type, boolean defultId) throws DataAccessException {
+		basedao.batchInsertJDBC3(entitys, IdName, type, defultId);
 	}  
       
 }  

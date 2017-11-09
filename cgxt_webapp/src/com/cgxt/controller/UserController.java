@@ -72,18 +72,17 @@ public class UserController extends BaseController{
 			user.setRoseCode((long)1);
 			users.add(user);
 		}*/
-		StringBuilder builder = new StringBuilder();
-		builder.append("INSERT INTO USER (id,age,PASSWORD,roseCode,userName) VALUES((SELECT IFNULL(MAX(ab.id),0)+1 FROM USER ab),'110','123456',1,'admin'),");
-		for (int i = 1; i <= 100; i++) {
-			builder.append("((SELECT IFNULL(MAX(ab.id),0)+1 FROM USER ab),'110','123456',1,'admin')");
-			if(i < 1000){
-				builder.append(",");
-			}else{
-				builder.append(";");
-			}
+		List<User> users = new ArrayList<User>();
+		for (int i = 0; i < 100000; i++) {
+			User user = new User();
+			//user.setId(1);
+			user.setAge("110");
+			user.setUserName("admin123");
+			user.setPassword("123456789");
+			user.setRoseCode((long)1);
+			users.add(user);
 		}
-		System.out.println(builder.toString());
-		//子表user
+		//user.setRoseCode((long)1);
 		//map
 		/*Map<String,Object> whereMap = new HashMap<String, Object>();
 		whereMap.put("age","20");
@@ -95,14 +94,14 @@ public class UserController extends BaseController{
 			//userService.JDBCsave(rose,"id",Sqltype.MYSQL);
 			//userService.JDBCsave(user,"id",Sqltype.MYSQL);
 			//userService.JdbcUpdate(user,whereMap);
-			long curTime = System.currentTimeMillis();
-			//userService.batchSave(users,"id",Sqltype.MYSQL);
-			//userService.insertAll(users);
-			userService.batchAddBySql(new String(builder.toString()));
-			System.out.println("所用时间为："+(System.currentTimeMillis() - curTime)+"ms");
-			//users = null;
 			//userService.JdbcDelete(user);
 			//在插入子表
+			long time = System.currentTimeMillis();
+			//userService.batchJdbcSave(users,"id",Sqltype.MYSQL);
+			//userService.insertAll(users);
+			userService.batchJdbcSave(users,"id",Sqltype.MYSQL);
+			long ntime = System.currentTimeMillis();
+			System.out.println("时间差为："+(ntime - time)/1000+"s"+(ntime - time)%1000+"ms");
 			map.put("error",false);
 			map.put("msg","主子表一起插入成功，恭喜哈");
 		} catch (Exception e) {
